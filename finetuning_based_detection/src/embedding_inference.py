@@ -1,71 +1,65 @@
-import pandas as pd
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from config import MODEL_SAVE_PATH, DATA_PATH,EMBEDDING_PATH,CENTROID_PATH,BP_LABEL_PATH
+from config import (
+    MODEL_SAVE_PATH,
+    EMBEDDING_PATH,
+    CENTROID_PATH,
+    BP_LABEL_PATH
+)
+
+from data_loader import load_dataset
 
 
 print("Loading trained model")
-
 model = SentenceTransformer(MODEL_SAVE_PATH)
 
 
-print("Loading dataset")
-
-df = pd.read_excel(DATA_PATH)
-
-df = df.rename(columns={
-    "jdmart_catname": "category",
-    "BP": "bp"
-})
+train_df, _ = load_dataset()
 
 
-print("Generating embeddings")
+# ===============================
+# GENERATE EMBEDDINGS (TRAIN)
+# ===============================
+print("Generating embeddings using trained model")
 
-texts = ["query: " + str(x) for x in df["category"]]
+train_texts = ["query: " + x for x in train_df["category"]]
 
-embeddings = model.encode(
-    texts,
+train_embeddings = model.encode(
+    train_texts,
     normalize_embeddings=True,
     show_progress_bar=True
 )
 
-
-np.save(EMBEDDING_PATH, embeddings)
-
+# ✅ Save directly as numpy (no id needed)
+np.save(EMBEDDING_PATH, train_embeddings)
 
 print("Embeddings saved")
 
 
-# --------------------------------------------------
-# COMPUTE BP CENTROIDS
-# --------------------------------------------------
-
+# ===============================
+# COMPUTE CENTROIDS
+# ===============================
 print("Computing BP centroids")
 
 bp_centroids = {}
 
-for bp in df["bp"].unique():
+for bp in train_df["bp"].unique():
 
-    idx = df[df["bp"] == bp].index
+    idx = train_df[train_df["bp"] == bp].index
 
-    centroid = embeddings[idx].mean(axis=0)
+    centroid = train_embeddings[idx].mean(axis=0)
 
     centroid = centroid / np.linalg.norm(centroid)
 
     bp_centroids[bp] = centroid
 
 
+bp_list = list(bp_centroids.keys())
+
 centroid_matrix = np.vstack(list(bp_centroids.values()))
 
-np.save(
-    CENTROID_PATH,
-    centroid_matrix
-)
+np.save(CENTROID_PATH, centroid_matrix)
+np.save(BP_LABEL_PATH, np.array(bp_list))
 
-np.save(
-    BP_LABEL_PATH,
-    np.array(list(bp_centroids.keys()))
-)
-
-print("BP centroids saved")
+print("Centroids saved")

@@ -3,19 +3,25 @@ import joblib
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-from lightgbm import LGBMClassifier
+from sklearn.preprocessing import LabelEncoder
 
-from config import FEATURE_PATH, META_MODEL_PATH
+from xgboost import XGBClassifier
+from xgboost.callback import EarlyStopping
+
+from config import FEATURE_PATH, META_MODEL_PATH,LABEL_ENCODER_PATH,EMBEDDING_PATH
+import numpy as np
+
 
 
 FEATURES = [
-    "sim_current_bp",
     "sim_best_bp",
+    "sim_second_bp",
     "similarity_margin",
     "knn_mismatch_ratio",
     "knn_entropy",
     "cluster_consistency",
-    "bp_outlier"
+    "bp_outlier",
+    "current_bp_rank"
 ]
 
 
@@ -23,35 +29,85 @@ print("Loading training features")
 
 df = pd.read_csv(FEATURE_PATH)
 
-X = df[FEATURES]
+print("Loading embeddings")
 
-y = df["bp"]
+embeddings = np.load(EMBEDDING_PATH)
+
+embedding_df = pd.DataFrame(embeddings)
+
+X = pd.concat([df[FEATURES], embedding_df], axis=1)
+
+# ---------------------------------------
+# LABEL ENCODING
+# ---------------------------------------
+
+print("Encoding BP labels")
+
+le = joblib.load(LABEL_ENCODER_PATH)
+y = df["bp_encoded"]
 
 
-X_train,X_test,y_train,y_test = train_test_split(
-    X,y,
+
+# ---------------------------------------
+# TRAIN TEST SPLIT
+# ---------------------------------------
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
     test_size=0.2,
-    random_state=42
+    random_state=42,
+    stratify=y
 )
 
 
-print("Training model")
+# ---------------------------------------
+# MODEL
+# ---------------------------------------
 
-model = LGBMClassifier(
-    n_estimators=500,
+print("Training XGBoost model with progress...")
+
+model = XGBClassifier(
+    n_estimators=300,
     learning_rate=0.05,
-    num_leaves=64,
+    max_depth=6,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    objective="multi:softprob",
+    eval_metric="mlogloss",
+    num_class=len(le.classes_),
     random_state=42
 )
 
-model.fit(X_train,y_train)
 
+# ---------------------------------------
+# TRAINING (FIXED)
+# ---------------------------------------
+
+model.fit(
+    X_train,
+    y_train,
+    eval_set=[(X_train, y_train), (X_test, y_test)],
+    verbose=50   # this WILL work across versions
+)
+
+
+# ---------------------------------------
+# EVALUATION
+# ---------------------------------------
 
 preds = model.predict(X_test)
 
-print(classification_report(y_test,preds))
+y_test_labels = le.inverse_transform(y_test)
+pred_labels = le.inverse_transform(preds)
+
+print("\nModel Evaluation")
+print(classification_report(y_test_labels, pred_labels))
 
 
-joblib.dump(model,META_MODEL_PATH)
+# ---------------------------------------
+# SAVE MODEL
+# ---------------------------------------
+
+joblib.dump(model, META_MODEL_PATH)
 
 print("Model saved:", META_MODEL_PATH)

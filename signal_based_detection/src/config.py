@@ -13,10 +13,16 @@ EMBEDDING_PATH = ARTIFACT_DIR + "category_embeddings.npy"
 CENTROID_PATH = ARTIFACT_DIR + "bp_centroids.npy"
 BP_LABEL_PATH = ARTIFACT_DIR + "bp_labels.npy"
 
-FEATURE_PATH = ARTIFACT_DIR + "signal_features.csv"
+FEATURE_PATH = ARTIFACT_DIR + "signal_features1.csv"
 
-META_MODEL_PATH = ARTIFACT_DIR + "meta_model.pkl"
+META_MODEL_PATH = ARTIFACT_DIR + "meta_model2.pkl"
 SCALER_PATH = ARTIFACT_DIR + "signal_scaler.pkl"
 
-RESULT_PATH = ARTIFACT_DIR + "lineage_results.csv"
-FINAL_RESULT = ARTIFACT_DIR + "signal_results.csv"
+RESULT_PATH = ARTIFACT_DIR + "lineage_results2.csv"
+FINAL_RESULT = ARTIFACT_DIR + "signal_results3.csv"
+
+LABEL_ENCODER_PATH=ARTIFACT_DIR + "label_encoder.pkl"
+
+TEST_DATA_PATH="data/Testinf_data.xlsx"
+
+TEST_RESULT=ARTIFACT_DIR + "result.csv"

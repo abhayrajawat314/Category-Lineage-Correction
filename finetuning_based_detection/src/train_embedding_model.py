@@ -15,12 +15,12 @@ from model_utils import build_model
 
 print("Loading dataset")
 
-df = load_dataset()
+train_df, test_df = load_dataset()
 
 
 print("Generating pairs")
 
-train_examples = generate_training_pairs(df)
+train_examples = generate_training_pairs(train_df)
 
 
 train_loader = DataLoader(

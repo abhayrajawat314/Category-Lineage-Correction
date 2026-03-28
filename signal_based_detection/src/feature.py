@@ -1,6 +1,9 @@
 import pandas as pd
 import joblib
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
+import numpy as np
+from config import LABEL_ENCODER_PATH, EMBEDDING_PATH
 
 from config import DATA_PATH, FEATURE_PATH, SCALER_PATH
 
@@ -14,15 +17,15 @@ from signals import (
     compute_bp_outlier
 )
 
-
 FEATURES = [
-    "sim_current_bp",
     "sim_best_bp",
+    "sim_second_bp",
     "similarity_margin",
     "knn_mismatch_ratio",
     "knn_entropy",
     "cluster_consistency",
-    "bp_outlier"
+    "bp_outlier",
+    "current_bp_rank"
 ]
 
 
@@ -47,6 +50,12 @@ print("Generating embeddings")
 
 embeddings = generate_embeddings(df["normalized_text"].tolist())
 
+print("Encoding BP labels")
+
+le = LabelEncoder()
+df["bp_encoded"] = le.fit_transform(df["bp"])
+
+joblib.dump(le, LABEL_ENCODER_PATH)
 
 print("Computing BP centroids")
 

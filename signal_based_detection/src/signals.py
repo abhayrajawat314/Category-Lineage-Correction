@@ -98,24 +98,18 @@ def compute_centroid_signals(df, embeddings, bp_centroids):
     print("Computing centroid signals")
 
     bp_list = list(bp_centroids.keys())
-
     centroid_matrix = np.vstack(list(bp_centroids.values()))
 
     sim_matrix = cosine_similarity(embeddings, centroid_matrix)
 
-    sim_current = []
     sim_best = []
     sim_second = []
     best_bp_list = []
+    bp_rank = []
 
     for i in range(len(df)):
 
         sims = sim_matrix[i]
-
-        current_bp = df.iloc[i]["bp"]
-        current_idx = bp_list.index(current_bp)
-
-        sim_current.append(sims[current_idx])
 
         sorted_idx = np.argsort(sims)[::-1]
 
@@ -127,27 +121,31 @@ def compute_centroid_signals(df, embeddings, bp_centroids):
 
         best_bp_list.append(bp_list[best_idx])
 
-    df["sim_current_bp"] = sim_current
+        # rank of TRUE BP (still allowed, but weaker dependency)
+        true_bp = df.iloc[i]["bp"]
+        true_idx = bp_list.index(true_bp)
+
+        rank = np.where(sorted_idx == true_idx)[0][0] + 1
+        bp_rank.append(rank)
+
     df["sim_best_bp"] = sim_best
     df["sim_second_bp"] = sim_second
-
     df["similarity_margin"] = df["sim_best_bp"] - df["sim_second_bp"]
 
     df["centroid_suggested_bp"] = best_bp_list
+    df["current_bp_rank"] = bp_rank
 
     return df
 
-
 def compute_bp_outlier(df, embeddings):
 
-    print("Computing BP outliers using embedding distribution")
+    print("Computing BP outliers (two-sided)")
 
     df["bp_outlier"] = 0
 
     for bp in df["bp"].unique():
 
         idx = df[df["bp"] == bp].index
-
         bp_embeddings = embeddings[idx]
 
         mean = bp_embeddings.mean(axis=0)
@@ -155,9 +153,10 @@ def compute_bp_outlier(df, embeddings):
 
         z_scores = np.linalg.norm((bp_embeddings - mean) / std, axis=1)
 
-        threshold = np.percentile(z_scores, 95)
+        low_thresh = np.percentile(z_scores, 5)
+        high_thresh = np.percentile(z_scores, 95)
 
-        outliers = z_scores > threshold
+        outliers = (z_scores < low_thresh) | (z_scores > high_thresh)
 
         df.loc[idx[outliers], "bp_outlier"] = 1
 
