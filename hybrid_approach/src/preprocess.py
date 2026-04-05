@@ -19,6 +19,7 @@ GENERIC_TERMS = {
     "cafe","stations","repair"
 }
 
+import re
 
 def linguistic_normalize(text):
 
