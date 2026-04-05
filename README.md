@@ -11,7 +11,9 @@ Uses finetune approach so we can get better embeddings and signal approach so we
 
 Steps to run the Code:
 --> Create all the folders in mentioned in config.py
+
 --> Keep the necessary data files in data folder to avoid error
+
 --> Install all the requirements and run the command given below in terminal 
     cmd: pip install -r requirements.txt 
     
